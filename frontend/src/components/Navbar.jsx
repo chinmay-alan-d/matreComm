@@ -32,6 +32,9 @@ function NavigationBar() {
                 <Nav.Link as={Link} to="/addbook">Add a New Book</Nav.Link>
                 <Nav.Link as={Link} to="/editbook">Edit Existing Book</Nav.Link>
                 <Nav.Link as={Link} to="/deletebook">Delete Book</Nav.Link>
+                {
+                  auth.role === 'admin' && <Nav.Link as={Link} to="/approveadmin">Approve Admin</Nav.Link>
+                }
               </>
             ) : (
               <>

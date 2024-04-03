@@ -30,23 +30,6 @@ const db = mysql.createConnection({
   database : process.env.DB
 });
 
-app.get("/",(req,res)=>{
-    db.query('show tables',(error,result)=>{
-        if(error) {
-            console.log(error);
-            res.status(500).send(error);
-        }else{
-            res.status(200).send(result);
-        }
-    })
-});
-
-
-const panel = {
-    username : "panel",
-    password : "password"
-};
-
 function isAdmin(req,res,next){
     const { token } = req.body;
     jwt.verify(token,process.env.JWT_KEY,(err,decoded)=>{
@@ -82,7 +65,6 @@ app.post("/user/signup",(req,res)=>{
     const { username,password } = req.body;
     bcrypt.hash(password, saltRounds,(err, hash) => {
         if(err) {
-            console.log(err);
             return res.status(500).send({
                 message : "Internal Server Error",
                 error : err
@@ -103,7 +85,6 @@ app.post("/user/signup",(req,res)=>{
                     }else {
                         db.query('INSERT INTO user(username,password) VALUES (?,?);',[username,hash],(errorInsertion,resultInsertion)=>{
                             if(errorInsertion) {
-                                console.log(errorInsertion);
                                 return res.status(500).send({
                                     message : "Error From Server",
                                     error : errorInsertion
@@ -231,29 +212,26 @@ app.post("/admin/login",(req,res)=>{
     })
 });
 
-app.post("/aproveAdmin",(req,res)=>{
-    const { panelusername,password,adminusername } = req.body;
-    if(panelusername===panel.username && password === panel.password) {
-        db.query(`SELECT * FROM admin WHERE adminusername=?`,[adminusername],(err,result)=>{
-            if(err) {
-                return res.status(500).send({message : "Internal Server Error"});
+app.post("/aproveAdmin",isAdmin,(req,res)=>{
+    const {adminName} = req.body;
+    db.query(`UPDATE admin SET role=? WHERE adminusername=?`,["admin",adminName],(error,resultUpdate)=>{
+        if(error) {
+            return res.status(500).send({
+                message : "Internal Server Error",
+                error : error
+            });
+        }else{
+            if(resultUpdate.length==0) {
+                return res.status(401).send({
+                    message : "User Not Found"
+                })
             }else{
-                if(result.length===0) {
-                    return res.status(404).send({message : "No User Found"});
-                }else{
-                    db.query(`UPDATE admin SET role=? WHERE adminusername=?`,["admin",adminusername],(error,resultUpdate)=>{
-                        if(error) {
-                            res.status(501).send({message : "Internal Server Error"});
-                        }else{
-                            res.status(200).send({message : "OK"});
-                        }
-                    })
-                }
+                return res.status(200).send({
+                    message : "OK"
+                });
             }
-        });
-    }else{
-        res.status(401).send({message : "UnAuthoriized"});
-    }
+        }
+    });
 });
 
 app.post("/user/showBooks",isUser,(req,res)=>{

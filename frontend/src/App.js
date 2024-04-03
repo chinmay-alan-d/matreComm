@@ -10,6 +10,7 @@ import EditBook from './components/EditBook';
 import Signup from './components/Signup';
 import EditABook from './components/EditABook';
 import LandingPage from './components/LandingPage';
+import ApproveAdmin from './components/ApproveAdmin';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path='/editabook/:id' element={<EditABook/>}/>
         <Route path='/login' element={<Login/>}/>
         <Route path='/signup' element={<Signup/>}/>
+        <Route path='/approveadmin' element={<ApproveAdmin/>}/>
       </Routes>
     </div>
   );

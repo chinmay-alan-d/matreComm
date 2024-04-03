@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
-  // State to hold the authentication token
   const [token, setToken_] = useState(localStorage.getItem("token"));
   const [state,setState_] = useState("User");
   const [role,setRole_] = useState("");
