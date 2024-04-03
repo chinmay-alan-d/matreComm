@@ -26,9 +26,21 @@ app.use(cors(corsOptions));
 const db = mysql.createConnection({
   host     : process.env.HOST,
   user     : process.env.DBUSER,    
-  password : process.env.DB_PASSWORD,
+  password : process.env.MYSQL_ROOT_PASSWORD,
   database : process.env.DB
 });
+
+app.get("/",(req,res)=>{
+    db.query('show tables',(error,result)=>{
+        if(error) {
+            console.log(error);
+            res.status(500).send(error);
+        }else{
+            res.status(200).send(result);
+        }
+    })
+});
+
 
 const panel = {
     username : "panel",
@@ -65,18 +77,23 @@ function isUser(req,res,next) {
     });
 }
 
+
 app.post("/user/signup",(req,res)=>{
     const { username,password } = req.body;
     bcrypt.hash(password, saltRounds,(err, hash) => {
         if(err) {
+            console.log(err);
             return res.status(500).send({
-                message : "Internal Server Error"
+                message : "Internal Server Error",
+                error : err
             });
         }else{
-            db.query(`SELECT * FROM USER WHERE ?=USER.username;`,[username],(error,result)=>{
+            db.query(`SELECT * FROM user WHERE ?=user.username;`,[username],(error,result)=>{
                 if(error) {
+                    console.log(err);
                     return res.status(500).send({
-                        message : "Internal Server Error"
+                        message : "Internal Server Error",
+                        error : error
                     });
                 }else{
                     if(result.length>0) {
@@ -84,10 +101,12 @@ app.post("/user/signup",(req,res)=>{
                             message : "Username Already Taken"
                         });
                     }else {
-                        db.query('INSERT INTO USER(username,password) VALUES (?,?);',[username,hash],(errorInsertion,resultInsertion)=>{
+                        db.query('INSERT INTO user(username,password) VALUES (?,?);',[username,hash],(errorInsertion,resultInsertion)=>{
                             if(errorInsertion) {
+                                console.log(errorInsertion);
                                 return res.status(500).send({
-                                    message : "Error From Server"
+                                    message : "Error From Server",
+                                    error : errorInsertion
                                 })
                             }else{
                                 return res.status(200).send({
@@ -105,7 +124,7 @@ app.post("/user/signup",(req,res)=>{
 app.post("/user/login",(req,res)=>{
     const { username,password } = req.body;
     // console.log(req.body);
-    db.query('SELECT * FROM USER WHERE USER.username=?',[username],(err,result)=>{
+    db.query('SELECT * FROM user WHERE user.username=?',[username],(err,result)=>{
         if(err) {
             return res.status(500).send({
                 message : "Internal Server Error",
@@ -147,7 +166,7 @@ app.post("/admin/signup",(req,res)=>{
                 message : "Internal Server Error"
             });
         }else{
-            db.query(`SELECT * FROM ADMIN WHERE ?=ADMIN.adminusername;`,[username],(error,result)=>{
+            db.query(`SELECT * FROM admin WHERE ?=admin.adminusername;`,[username],(error,result)=>{
                 if(error) {
                     return res.status(500).send({
                         message : "Internal Server Error"
@@ -158,7 +177,7 @@ app.post("/admin/signup",(req,res)=>{
                             message : "Username Already Taken"
                         });
                     }else {
-                        db.query('INSERT INTO ADMIN(adminusername,password) VALUES (?,?);',[username,hash],(errorInsertion,resultInsertion)=>{
+                        db.query('INSERT INTO admin(adminusername,password) VALUES (?,?);',[username,hash],(errorInsertion,resultInsertion)=>{
                             if(errorInsertion) {
                                 return res.status(500).send({
                                     message : "Error From Server"
@@ -179,7 +198,7 @@ app.post("/admin/signup",(req,res)=>{
 app.post("/admin/login",(req,res)=>{
     const { username,password } = req.body;
     console.log({ username,password });
-    db.query('SELECT * FROM ADMIN WHERE ADMIN.adminusername=?',[username],(err,result)=>{
+    db.query('SELECT * FROM admin WHERE admin.adminusername=?',[username],(err,result)=>{
         if(err) {
             return res.status(500).send({
                 message : "Internal Server Error"
@@ -215,14 +234,14 @@ app.post("/admin/login",(req,res)=>{
 app.post("/aproveAdmin",(req,res)=>{
     const { panelusername,password,adminusername } = req.body;
     if(panelusername===panel.username && password === panel.password) {
-        db.query(`SELECT * FROM ADMIN WHERE adminusername=?`,[adminusername],(err,result)=>{
+        db.query(`SELECT * FROM admin WHERE adminusername=?`,[adminusername],(err,result)=>{
             if(err) {
                 return res.status(500).send({message : "Internal Server Error"});
             }else{
                 if(result.length===0) {
                     return res.status(404).send({message : "No User Found"});
                 }else{
-                    db.query(`UPDATE ADMIN SET role=? WHERE adminusername=?`,["admin",adminusername],(error,resultUpdate)=>{
+                    db.query(`UPDATE admin SET role=? WHERE adminusername=?`,["admin",adminusername],(error,resultUpdate)=>{
                         if(error) {
                             res.status(501).send({message : "Internal Server Error"});
                         }else{
@@ -238,7 +257,7 @@ app.post("/aproveAdmin",(req,res)=>{
 });
 
 app.post("/user/showBooks",isUser,(req,res)=>{
-    db.query(`SELECT * FROM BOOKS`,(err,result)=>{
+    db.query(`SELECT * FROM books`,(err,result)=>{
         if(err) {
             res.status(500).send({message : "Internal Server Error"});
         }else{
@@ -259,7 +278,7 @@ app.post("/admin/addBook",isAdmin,(req,res)=>{
 });
 
 app.post("/admin/showBooks",isAdmin,(req,res)=>{
-    db.query(`SELECT * FROM BOOKS`,(err,result)=>{
+    db.query(`SELECT * FROM books`,(err,result)=>{
         if(err) {
             return res.status(501).send({message : "Internel Server Error"});
         }else{
@@ -282,7 +301,7 @@ app.post("/admin/editBook",isAdmin,(req,res)=>{
 
 app.post("/admin/deleteBook",isAdmin,(req,res)=>{
     const { bookid } = req.body;
-    db.query(`DELETE FROM BOOKS WHERE bookid=?`,[bookid],(err,result)=>{
+    db.query(`DELETE FROM books WHERE bookid=?`,[bookid],(err,result)=>{
         if(err) {
             return res.status(501).send({message : "Internel Server Error"})
         }else{
@@ -293,7 +312,7 @@ app.post("/admin/deleteBook",isAdmin,(req,res)=>{
 
 app.post("/admin/getabook",isAdmin,(req,res)=>{
     const {id} = req.body;
-    db.query(`SELECT * FROM BOOKS WHERE bookid=?`,[id],(err,result)=>{
+    db.query(`SELECT * FROM books WHERE bookid=?`,[id],(err,result)=>{
         if(err) {
             return res.status(501).send({message : "Internel Server Error"});
         }else{
@@ -305,7 +324,7 @@ app.post("/admin/getabook",isAdmin,(req,res)=>{
 app.post("/admin/getBooks",isAdmin,(req,res)=> {
     // console.log(req.body);
     const {search} = req.body;
-    db.query(`SELECT * FROM BOOKS WHERE bookname LIKE '%${search}%'`, [search], (err, result) => {
+    db.query(`SELECT * FROM books WHERE bookname LIKE '%${search}%'`, [search], (err, result) => {
         if(err) {
             return res.status(501).send({message : "Internel Server Error"});
         }else{
